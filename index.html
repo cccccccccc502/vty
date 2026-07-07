@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本地HTML文件预览工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.1/purify.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            color: white;
+        }
+        
+        header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+        
+        .card-header {
+            background: #2c3e50;
+            color: white;
+            padding: 18px 25px;
+            font-size: 1.3rem;
+            font-weight: 500;
+        }
+        
+        .card-body {
+            padding: 25px;
+        }
+        
+        .upload-area {
+            border: 3px dashed #3498db;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            cursor: pointer;
+        }
+        
+        .upload-area:hover, .upload-area.dragover {
+            background: #e3f2fd;
+            border-color: #2980b9;
+        }
+        
+        .upload-icon {
+            font-size: 60px;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+        
+        .upload-text {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #555;
+        }
+        
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(52, 152, 219, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .preview-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .preview-area, .code-area {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .preview-area {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: white;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .preview-header {
+            background: #f5f5f5;
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .preview-content {
+            flex: 1;
+            overflow: auto;
+            padding: 20px;
+        }
+        
+        .code-area {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #2d2d2d;
+            height: 500px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .code-header {
+            background: #1e1e1e;
+            padding: 12px 15px;
+            border-bottom: 1px solid #444;
+            color: #ccc;
+            font-weight: 500;
+        }
+        
+        .code-content {
+            flex: 1;
+            overflow: auto;
+            padding: 15px;
+            color: #f8f8f2;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .file-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .file-info p {
+            margin-bottom: 8px;
+        }
+        
+        .instructions {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .instructions ol {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        footer {
+            text-align: center;
+            color: white;
+            padding: 30px 0 20px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        @media (max-width: 768px) {
+            .preview-container {
+                flex-direction: column;
+            }
+            
+            header h1 {
+                font-size: 2.2rem;
+            }
+            
+            header p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>本地HTML文件预览工具</h1>
+            <p>上传您的本地HTML文件，即可在浏览器中预览效果并查看源代码</p>
+        </header>
+        
+        <div class="card">
+            <div class="card-header">上传HTML文件</div>
+            <div class="card-body">
+                <div class="upload-area" id="dropArea">
+                    <div class="upload-icon">📁</div>
+                    <div class="upload-text">拖放HTML文件到此处，或点击选择文件</div>
+                    <button class="btn" id="selectFileBtn">选择文件</button>
+                    <input type="file" id="fileInput" class="file-input" accept=".html,.htm">
+                </div>
+                
+                <div id="fileInfo" class="file-info hidden">
+                    <p><strong>已选择文件：</strong> <span id="fileName">-</span></p>
+                    <p><strong>文件大小：</strong> <span id="fileSize">-</span></p>
+                    <p><strong>最后修改：</strong> <span id="fileModified">-</span></p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="previewSection" class="hidden">
+            <div class="preview-container">
+                <div class="preview-area">
+                    <div class="preview-header">网页预览</div>
+                    <div class="preview-content" id="previewContent">
+                        <!-- 预览内容将在这里显示 -->
+                    </div>
+                </div>
+                
+                <div class="code-area">
+                    <div class="code-header">HTML源代码</div>
+                    <div class="code-content" id="codeContent">
+                        <!-- 源代码将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>使用说明</h3>
+            <ol>
+                <li>点击"选择文件"按钮或拖放HTML文件到上传区域</li>
+                <li>系统将自动解析并显示HTML文件内容</li>
+                <li>左侧预览区显示网页效果，右侧显示源代码</li>
+                <li>请注意：此工具仅用于预览本地文件，不会上传到任何服务器</li>
+                <li>出于安全考虑，所有脚本和外部资源将被过滤</li>
+            </ol>
+        </div>
+    </div>
+    
+    <footer>
+        <p>© 2023 本地HTML预览工具 | 注意：此工具仅用于本地预览，文件不会上传到任何服务器</p>
+    </footer>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('fileInput');
+            const selectFileBtn = document.getElementById('selectFileBtn');
+            const dropArea = document.getElementById('dropArea');
+            const previewSection = document.getElementById('previewSection');
+            const previewContent = document.getElementById('previewContent');
+            const codeContent = document.getElementById('codeContent');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const fileModified = document.getElementById('fileModified');
+            
+            // 点击按钮触发文件选择
+            selectFileBtn.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            // 文件选择变化时处理
+            fileInput.addEventListener('change', handleFile);
+            
+            // 拖放功能
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropArea.classList.add('dragover');
+            });
+            
+            dropArea.addEventListener('dragleave', () => {
+                dropArea.classList.remove('dragover');
+            });
+            
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFile();
+                }
+            });
+            
+            // 处理选择的文件
+            function handleFile() {
+                const file = fileInput.files[0];
+                
+                if (!file) return;
+                
+                // 检查文件类型
+                if (!file.type.includes('html') && !file.name.endsWith('.html') && !file.name.endsWith('.htm')) {
+                    alert('请选择HTML文件 (.html 或 .htm)');
+                    return;
+                }
+                
+                // 显示文件信息
+                fileName.textContent = file.name;
+                fileSize.textContent = formatFileSize(file.size);
+                fileModified.textContent = new Date(file.lastModified).toLocaleString();
+                fileInfo.classList.remove('hidden');
+                
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    
+                    // 显示源代码
+                    codeContent.textContent = content;
+                    
+                    // 安全地显示预览内容
+                    // 使用DOMPurify过滤不安全内容
+                    const cleanHTML = DOMPurify.sanitize(content, {
+                        FORBID_TAGS: ['script', 'iframe', 'frame', 'link', 'meta'],
+                        FORBID_ATTR: ['onclick', 'onerror', 'onload']
+                    });
+                    
+                    previewContent.innerHTML = cleanHTML;
+                    
+                    // 显示预览区域
+                    previewSection.classList.remove('hidden');
+                    
+                    // 滚动到预览区域
+                    previewSection.scrollIntoView({ behavior: 'smooth' });
+                };
+                
+                reader.readAsText(file);
+            }
+            
+            // 格式化文件大小
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+        });
+    </script>
+</body>
+</html>
